@@ -210,7 +210,7 @@ app.get('/summary', isLoggedIn, async (req,res) => {
 
 app.get('/report', isLoggedIn, async (req, res) => {
     const user_id = req.user._id;
-    let months = (yyyy - 2021) * 12 + 3 + Number(mm);
+    let months = (yyyy - 2022) * 12 + 3 + Number(mm);
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     let arr = [];
     for (let i = 0; i < months; i++)
