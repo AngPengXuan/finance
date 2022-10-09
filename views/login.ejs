@@ -1,0 +1,39 @@
+<%- include('partials/header') %>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNavDropdown">
+            <form class="form-inline ms-auto" action="/register" method="GET">
+              <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Register</button>
+            </form>
+          </div>
+        </div>
+      </nav>
+      <% if (messages != '') { %> 
+      <div class="alert alert-danger" role="alert">
+      <%= messages %> 
+      </div>
+      <% } %> 
+      <h1>Log in</h1>
+      <form action="/login" method="post">
+        <div class="form-group">
+          <label for="exampleInputEmail1">Username</label>
+          <input class="form-control" type="text" placeholder="Username" required="true" id="username" name="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" class="form-control" id="password" placeholder="Password" required="true" name="password">
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+      <br>
+      <br>
+      <form action="/auth/google" method="get">
+        <button type="submit" class="btn btn-primary">Login with Google</button>
+      </form>
+</body>
+</html>

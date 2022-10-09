@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<body>
+    <%- include('partials/navbar') %>
+    <h1>EDIT OUTFLOW</h1>
+    <div>
+        <form action="/summary/<%= entry._id %>" method="POST">
+            <div>
+                <label for="date">Date</label>
+                <input type="date" name="date" id="date" value= <%= tmpDate %> class="form-control">
+            </div>
+            <br>
+            <div>
+                <label for="amount">Amount</label>
+                <input type="number" name="amount" id="amount" step="0.01" value=<%= entry.amount %> class="form-control"> 
+            </div>
+            <br>
+            <div>
+                <label for="category">Select Category</label>
+                <select name="category" id="category" class="form-control">
+                    <% for (let category of outflowCategories) { %> 
+                        <option value="<%= category %>" <%= category === entry.category ? 'selected' : '' %> ><%= category %> </option>
+                    <% } %> 
+                </select>
+            </div>
+            <br>
+            <div>
+                <label for="notes">Notes</label>
+                <input type="text" name="notes" id="notes" value=<%= entry.notes %> class="form-control">
+            </div>
+            <br>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+
+</body>
+</html>

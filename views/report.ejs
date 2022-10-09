@@ -1,0 +1,38 @@
+<%- include('partials/header') %>
+<body>
+    <%- include('partials/navbar') %> 
+    <table class="table table-striped table-bordered table-hover">
+        <tr class="table-info">
+            <th scope="col">
+                Month
+            </th>
+            <% for (let category of outflowCategories) {%>
+                <th>
+                    <%= category %> 
+                </th>
+            <% } %>  
+            <th scope="col">
+                Total Spent
+            </th>
+            <th scope="col">
+                Income
+            </th>
+            <th scope="col">
+                Amount Left
+            </th>
+            <th scope="col">
+                Percentage saved
+            </th>
+        </tr>
+        <% for (let ar of arr) {%>
+            <tr>
+                <% for (let a of ar) {%>
+                    <td <% if (Number(a.slice(1)) < 0) {%> style="color: red;" <% } %>  >
+                        <%= a %> 
+                    </td>
+                <% } %>  
+             </tr>
+        <% } %>  
+    </table>
+</body>
+</html>

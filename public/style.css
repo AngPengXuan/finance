@@ -1,0 +1,38 @@
+body {
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
+/* table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+    font-size: small;
+  }
+  
+tr:nth-child(even) {
+    background-color: #dddddd;
+  } */
+
+  form {
+    display: inline;
+    margin: 0%;
+    padding: 0%;
+}
+
+#delete {
+  display: inline;
+}
+
+div {
+  align-items: center;
+}
+.sort {
+  width: 18px;
+}
