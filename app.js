@@ -17,7 +17,8 @@ const MongoStore = require('connect-mongo');
 
 //connect mongoose database
 //'mongodb://localhost:27017/finance'
-const dbUrl = process.env.DB_URL;
+//const dbUrl = process.env.DB_URL;
+const dbUrl = 'mongodb://localhost:27017/finance';
 mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log("MONGO CONNECTION OPEN!")
@@ -74,6 +75,7 @@ let dateDesc = true, amountDesc = true, dateChanged = false, amountChanged = fal
 
 const finance = require('./models/finance');
 const users = require('./models/user');
+const report = require('./models/report');
 const { type } = require('os');
 
 const outflowCategories = ['Food and Beverages', 'Transport', 'Stationary/office stuff', 'Entertainment', 'Health','Gifts','Investment', 'Education', 'Transfer', 'Others']
@@ -118,6 +120,119 @@ function changeData(req, bool) {
     return tmpEntry;
 }
 
+async function updateData(req) {
+    let month = "", year = "";
+    for (let i = 0; i < 4; i++)
+    {
+        year += req.body.date[i];
+    }
+    for (let i = 5; i < 7; i++)
+    {
+        month += req.body.date[i];
+    }
+    let found = await report.findOne({month: month, year: year, category: req.body.category}).exec();
+    if (found === null) {
+        for (let i = 0; i < inflowCategories.length; i++) {
+            newEntry = new report({
+                summary: false,
+                outflow: false,
+                month: month,
+                year: year,
+                category: inflowCategories[i],
+                amount: 0,
+                rank: i,
+                author: req.user._id
+            })
+            await newEntry.save();
+        }
+        for (let i = inflowCategories.length; i < outflowCategories.length + inflowCategories.length; i++) {
+            newEntry = new report({
+                summary: false,
+                outflow: true,
+                month: month,
+                year: year,
+                category: outflowCategories[i - inflowCategories.length],
+                amount: 0,
+                rank: i,
+                author: req.user._id
+            })
+            await newEntry.save();
+        }
+        newEntry = new report({
+            summary: true,
+            outflow: false,
+            month: month,
+            year: year,
+            category: 'Total Income',
+            amount: 0,
+            author: req.user._id,
+            rank: 1
+        })
+        await newEntry.save();
+        newEntry = new report({
+            summary: true,
+            outflow: false,
+            month: month,
+            year: year,
+            category: 'Total Expense',
+            amount: 0,
+            author: req.user._id,
+            rank: 2
+        })
+        await newEntry.save();
+        newEntry = new report({
+            summary: true,
+            outflow: false,
+            month: month,
+            year: year,
+            category: 'Amount Left',
+            amount: 0,
+            author: req.user._id,
+            rank: 3
+        })
+        await newEntry.save();
+        newEntry = new report({
+            summary: true,
+            outflow: false,
+            month: month,
+            year: year,
+            category: 'Percentage Saved',
+            amount: 0,
+            author: req.user._id,
+            rank: 4
+        })
+        await newEntry.save();
+        found = await report.findOne({month: month, year: year, category: req.body.category, author: req.user._id}).exec();
+    }
+    found.amount += Number(req.body.amount);
+    await found.save();
+    let totalExpense = await report.findOne({month: month, year: year, category: 'Total Expense', author: req.user._id});
+    let totalIncome = await report.findOne({month: month, year: year, category: 'Total Income', author: req.user._id});
+    let amountLeft = await report.findOne({month: month, year: year, category: 'Amount Left', author: req.user._id});
+    let percentageSaved = await report.findOne({month: month, year: year, category: 'Percentage Saved', author: req.user._id});
+    if (found.outflow) {
+        totalExpense.amount += Number(req.body.amount);
+        await totalExpense.save();
+    }
+    else
+    {
+        totalIncome.amount += Number(req.body.amount);
+        await totalIncome.save();
+    }
+    amountLeft.amount = totalIncome.amount - totalExpense.amount;
+    await amountLeft.save();
+    if (totalIncome.amount != 0)
+    {
+        percentageSaved.amount = (amountLeft.amount / totalIncome.amount) * 100;
+        percentageSaved.amount.toFixed(2);
+    }
+    else 
+    {
+        percentageSaved.amount = 0;
+    }
+    await percentageSaved.save();
+}
+
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
@@ -140,7 +255,7 @@ app.post('/register', async (req, res) => {
         const registeredUser =  await User.register(user, password);
         req.login(registeredUser, err => {
             if (err) return next(err);
-            res.redirect('/summary');
+            res.redirect('/data');
         })
     } catch(e) {
         req.flash('error', e.message);
@@ -153,7 +268,7 @@ app.get('/login', (req, res) => {
 })
 
 app.post('/login', passport.authenticate('local', {failureFlash: true, failureRedirect: '/login'}), (req,res) => {
-    res.redirect('/summary');
+    res.redirect('/data');
 })
 
 app.get('/auth/google', 
@@ -162,7 +277,7 @@ app.get('/auth/google',
 
 app.get('/auth/google/callback',
     passport.authenticate('google', {
-        //successRedirect: '/summary',
+        //successRedirect: '/data',
         failureFlash: true,
         failureRedirect: '/login',
     }), async (req, res) => {
@@ -170,7 +285,7 @@ app.get('/auth/google/callback',
         //console.log(user);
         req.login(user, err => {
             if (err) return next(err);
-            res.redirect('/summary');
+            res.redirect('/data');
         })
     }
 );
@@ -179,78 +294,54 @@ app.get('/auth/failure', (req, res) => {
     res.send('something went wrong');
 })
 
-app.get('/summary', isLoggedIn, async (req,res) => {
+app.get('/data', isLoggedIn, async (req,res) => {
     const user_id = req.user._id;
-    let summary, test = dateDesc? -1 : 1;
+    let data, test = dateDesc? -1 : 1;
     if (dateDesc && dateChanged)
     {
-        summary = await finance.find({author: user_id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1})
+        data = await finance.find({author: user_id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1})
     }
     else if (!dateDesc && dateChanged)
     {
-        summary = await finance.find({author: user_id}).sort({year: 1, month: 1, day: 1, amount: amountDesc? -1 : 1})
+        data = await finance.find({author: user_id}).sort({year: 1, month: 1, day: 1, amount: amountDesc? -1 : 1})
     }
     else if (amountDesc && amountChanged)
     {
-        summary = await finance.find({author: user_id}).sort({amount: -1, year: test, month: test, day: test})
+        data = await finance.find({author: user_id}).sort({amount: -1, year: test, month: test, day: test})
     }
     else if (!amountDesc && amountChanged)
     {
-        summary = await finance.find({author: user_id}).sort({amount: 1, year: test, month: test, day: test})
+        data = await finance.find({author: user_id}).sort({amount: 1, year: test, month: test, day: test})
     }
     else{
-        summary = await finance.find({author: user_id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1})
+        data = await finance.find({author: user_id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1})
     }
-    //console.log(summary);
+    //console.log(data);
     //res.send("OUTFLOW");
     amountChanged = false;
     dateChanged = false;
-    res.render('summary', {summary, dateDesc, amountDesc});
+    res.render('data', {data, dateDesc, amountDesc});
 })
 
-app.get('/report', isLoggedIn, async (req, res) => {
-    const user_id = req.user._id;
-    let months = (yyyy - 2022) * 12 + 3 + Number(mm);
+app.get('/outflowReport', isLoggedIn, async (req, res) => {
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-    let arr = [];
-    for (let i = 0; i < months; i++)
-    {
-        arr.push([m[(9 + i) % 12] + " " + toFixed(2020 + ((i + 9) / 12), 0)]);
-        //arr[i].push(toFixed(2020 + ((i + 9) / 12), 0));
-        // arr[i].push(((10 + i) % 12));
-        let totalSpent = 0, sum = 0;
-        for(let category of outflowCategories)
-        {
-            let test  = await finance.find({author: user_id, year: toFixed(2020 + ((i + 9) / 12), 0), month: ((9 + i) % 12) + 1, category: category, outflow: true});
-            sum = 0;
-            for (let t of test)
-            {   
-                sum += t.amount;
-            }
-            totalSpent += sum;
-            arr[i].push("$" + toFixed(sum, 2));
-        }
-        arr[i].push("$" + toFixed(totalSpent, 2));
-        let income = await finance.find({author: user_id, year: toFixed(2020 + ((i + 9) / 12), 0), month: ((9 + i) % 12) + 1, outflow: false})
-        sum = 0
-        for (let i of income)
-        {
-            sum += i.amount;
-        }
-        arr[i].push("$" + toFixed(sum, 2));
-        arr[i].push("$" + toFixed(sum - totalSpent, 2));
-        if (sum - totalSpent <= 0)
-        {
-            arr[i].push("NA")
-        }
-        else
-        {
-            arr[i].push(toFixed((sum - totalSpent) / sum * 100, 2) + "%");
-        }
-    }
-    //console.log(arr);
-    arr = arr.reverse();
-    res.render('report', {outflowCategories, arr});
+    let test = await report.find({outflow: true, author: req.user._id}).sort({month: -1, year: -1, rank: 1});
+    let len = outflowCategories.length;
+    res.render('outflowReport', {test, outflowCategories, len, m})
+})
+
+app.get('/inflowReport', isLoggedIn, async (req, res) => {
+    let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    let test = await report.find({outflow: false, summary: false, author: req.user._id}).sort({month: -1, year: -1, rank: 1});
+    let len = inflowCategories.length;
+    res.render('inflowReport', {test, inflowCategories, len, m})
+})
+
+app.get('/summary', isLoggedIn, async (req, res) => {
+    let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    let test = await report.find({summary: true, author: req.user._id}).sort({month: -1, year: -1, rank: 1});
+    let len = 4;
+    res.render('summary', {test, len, m})
 })
 
 app.post('/logout', (req,res) => {
@@ -259,9 +350,9 @@ app.post('/logout', (req,res) => {
     res.redirect('/');
 })
 
-app.post('/summarydate', isLoggedIn, async (req, res) => {
+app.post('/datadate', isLoggedIn, async (req, res) => {
     //console.log(req.body.dropdown);
-    if (req.body.summarydate === "down")
+    if (req.body.datadate === "down")
     {
         dateDesc = true;
         dateChanged = true;
@@ -273,11 +364,11 @@ app.post('/summarydate', isLoggedIn, async (req, res) => {
         dateChanged = true;
         amountChanged = false;
     }
-    res.redirect('/summary');
+    res.redirect('/data');
 })
 
-app.post('/summaryamount', isLoggedIn, async (req, res) => {
-    if (req.body.summaryamount === "down")
+app.post('/dataamount', isLoggedIn, async (req, res) => {
+    if (req.body.dataamount === "down")
     {
         amountDesc = true;
         dateChanged = false;
@@ -289,7 +380,7 @@ app.post('/summaryamount', isLoggedIn, async (req, res) => {
         dateChanged = false;
         amountChanged = true;
     }
-    res.redirect('/summary');
+    res.redirect('/data');
 })
 
 app.get('/outflow', isLoggedIn, async (req, res) => {
@@ -302,25 +393,25 @@ app.post('/newOutflow', isLoggedIn, async (req,res) => {
     const newEntry = new finance(changeData(req, true));
     newEntry.author = req.user._id;
     await newEntry.save();
-    console.log(newEntry)
-    res.redirect("/summary");
+    updateData(req);
+    res.redirect("/data");
 })
 app.post('/newInflow', isLoggedIn, async (req,res) => {
-    const newEntry = new finance(changeData(req, false));
+    let newEntry = new finance(changeData(req, false));
     newEntry.author = req.user._id;
     await newEntry.save();
-    console.log(newEntry)
-    res.redirect("/summary");
+    updateData(req);
+    res.redirect("/data");
 })
 
-app.get('/summary/:id/edit', isLoggedIn, async (req,res) => {
+app.get('/data/:id/edit', isLoggedIn, async (req,res) => {
     const { id } = req.params;
     const entry = await finance.findById(id).populate('author');
     // console.log(entry.author._id.toString());
     console.log(entry);
     if (entry.author._id.toString() !== req.user._id)
     {
-        return res.redirect('/summary');    
+        return res.redirect('/data');    
     }
     let tmpDate = "";
     tmpDate = entry.year + "-";
@@ -336,17 +427,49 @@ app.get('/summary/:id/edit', isLoggedIn, async (req,res) => {
     }
 })
 
-app.post('/summary/:id', isLoggedIn, async (req,res) => {
+app.post('/data/:id', isLoggedIn, async (req,res) => {
     const { id } = req.params;
     const entry = await finance.findByIdAndUpdate(id, changeData(req), {runValidators: true, new: true})
-    res.redirect('/summary');
+    res.redirect('/data');
 })
 
-app.delete('/summary/:id', isLoggedIn, async (req,res) => {
+app.delete('/data/:id', isLoggedIn, async (req,res) => {
     const { id } = req.params;
-    console.log('deleted');
+    //console.log('deleted');
+    let find = await finance.findById(id);
+    let month = find.month, year = find.year;
+    let found = await report.findOne({month: month, year: year, category: find.category}).exec();
+    found.amount -= Number(find.amount);
+    await found.save();
     const deleted = await finance.findByIdAndDelete(id);
-    res.redirect('/summary');
+
+    let totalExpense = await report.findOne({month: month, year: year, category: 'Total Expense', author: req.user._id});
+    let totalIncome = await report.findOne({month: month, year: year, category: 'Total Income', author: req.user._id});
+    let amountLeft = await report.findOne({month: month, year: year, category: 'Amount Left', author: req.user._id});
+    let percentageSaved = await report.findOne({month: month, year: year, category: 'Percentage Saved', author: req.user._id});
+    if (found.outflow) {
+        totalExpense.amount -= Number(find.amount);
+        await totalExpense.save();
+    }
+    else
+    {
+        totalIncome.amount -= Number(find.amount);
+        await totalIncome.save();
+    }
+    amountLeft.amount = totalIncome.amount - totalExpense.amount;
+    await amountLeft.save();
+    if (totalIncome.amount != 0)
+    {
+        percentageSaved.amount = (amountLeft.amount / totalIncome.amount) * 100;
+        percentageSaved.amount.toFixed(2);
+    }
+    else 
+    {
+        percentageSaved.amount = 0;
+    }
+    await percentageSaved.save();
+
+    res.redirect('/data');
 })
 
 const port = process.env.PORT || 3000;

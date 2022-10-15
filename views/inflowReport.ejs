@@ -1,4 +1,5 @@
 <%- include('partials/header') %>
+<% let sum = 0 %> 
 <body>
     <%- include('partials/navbar') %> 
     <table class="table table-striped table-bordered table-hover">
@@ -6,17 +7,13 @@
             <th scope="col"> 
                 Month
             </th>
-            <th scope="col"> 
+            <% for (let category of inflowCategories) {%>
+                <th>
+                    <%= category %> 
+                </th>
+            <% } %>  
+            <th scope="col">
                 Total Income
-            </th>
-            <th scope="col"> 
-                Total Expense
-            </th>
-            <th scope="col"> 
-                Amount Left
-            </th>
-            <th scope="col"> 
-                Percentage Saved
             </th>
         </tr>
         <% for (let i = 0; i < test.length / len; i++) {%>
@@ -26,11 +23,13 @@
                 </td>
                 <% for (let j = 0; j < len; j++) {%>
                     <td >
-                        <% if (j < len - 1) {%>$<% } %>
-                        <%= test[j + i * len].amount.toFixed(2) %>
-                        <% if (j === len - 1) {%>%<% } %>  
+                        $<%= test[j + i * len].amount.toFixed(2) %> 
+                        <% sum += test[j + i * len].amount%> 
                     </td>
-                <% } %> 
+                <% } %>  
+                <td>
+                    $<%= sum.toFixed(2) %> 
+                </td>
              </tr>
         <% } %>  
     </table>

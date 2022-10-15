@@ -1,0 +1,52 @@
+<%- include('partials/header') %>
+<body>
+  <%- include('partials/navbar') %>
+    <table class="table table-striped table-bordered table-hover">
+        <tr class="table-info">
+            <th scope="col">
+              Date
+              <form action="/datadate" method="post">
+                <select name="datadate" id="datadate" onchange="this.form.submit()" class="sort">
+                  <option value="nothing" selected></option>
+                  <option value="up">Ascending </option>
+                  <option value="down">Descending</option>
+                </select>
+              </form>
+            </th>
+            <th scope="col">Amount
+              <form action="/dataamount" method="post">
+                <select name="dataamount" id="" onchange="this.form.submit()" class="sort">
+                  <option value="nothing" selected></option>
+                  <option value="up">Ascending </option>
+                  <option value="down">Descending</option>
+                </select>
+              </form>
+            </th>
+            <th scope="col">Category</th>
+            <th scope="col">Notes</th>
+            <th scope="col"></th>
+        </tr>
+        <% for (let s of data) { %> 
+            <tr>
+                <td><%= s.day %> / <%= s.month %> / <%= s.year %></td>
+                <td <% if (s.outflow) { %> 
+                  style= "color: red"
+                  <% } else { %> 
+                    style= "color: green"
+                  <% } %> 
+                  >$<%= s.amount.toFixed(2) %> </td>
+                <td><%= s.category %> </td>
+                <td><%= s.notes %> </td>
+                <td>
+                  <form action="/data/<%= s._id %>/edit">
+                    <input type="image" src="images/edit.jpg" alt="delete" width="20px" height="20px" id="delete">
+                  </form>
+                  <form action="/data/<%= s._id %>?_method=DELETE" method="POST">
+                    <input type="image" src="images/delete.png" alt="delete" width="20px" height="20px" id="delete">
+                  </form>
+                </td>
+            </tr>
+        <% } %> 
+    </table> 
+</body>
+</html>
