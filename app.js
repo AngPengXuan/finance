@@ -17,8 +17,8 @@ const MongoStore = require('connect-mongo');
 
 //connect mongoose database
 //'mongodb://localhost:27017/finance'
-//const dbUrl = process.env.DB_URL;
-const dbUrl = 'mongodb://localhost:27017/finance';
+const dbUrl = process.env.DB_URL;
+//const dbUrl = 'mongodb://localhost:27017/finance';
 mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log("MONGO CONNECTION OPEN!")
