@@ -16,17 +16,9 @@ const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
 
 let live = process.env.LIVE;
-let dbUrl;
 
-//connect mongoose database
-if (live) {
-    dbUrl = process.env.DB_URL;
-}
-else
-{
-    dbUrl = 'mongodb://localhost:27017/finance';
-}
-
+//connect mongoDB
+let dbUrl = process.env.DB_URL;
 mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log("MONGO CONNECTION OPEN!")
@@ -69,7 +61,7 @@ const sessionConfig = {
     }
 }
 
-if (live) {
+if (live === 'true') {
     app.enable('trust proxy')
     app.use(function(request, response, next) {
 
@@ -287,6 +279,11 @@ app.get('/login', (req, res) => {
     res.render('login', {messages: req.flash('error')});
 })
 
+app.get('/googleloginfail', (req, res) => {
+    req.flash('error', 'Gmail Account is not registered!')
+    res.redirect('/login');
+})
+
 app.post('/login', passport.authenticate('local', {failureFlash: true, failureRedirect: '/login'}), (req,res) => {
     res.redirect('/data');
 })
@@ -299,10 +296,11 @@ app.get('/auth/google/callback',
     passport.authenticate('google', {
         //successRedirect: '/data',
         failureFlash: true,
-        failureRedirect: '/login',
+        failureRedirect: '/googleloginfail',
     }), async (req, res) => {
-        const user = await users.findById('634225ceced75245a2ce6728');
-        //console.log(user);
+        //console.log(req.user.email);
+        const user = await users.findOne({email: req.user.email}).exec();
+        console.log(user);
         req.login(user, err => {
             //if (err) return next(err);
             res.redirect('/data');
@@ -315,6 +313,7 @@ app.get('/auth/failure', (req, res) => {
 })
 
 app.get('/data', isLoggedIn, async (req,res) => {
+    console.log(req.user);
     const user_id = req.user._id;
     let data, test = dateDesc? -1 : 1;
     if (dateDesc && dateChanged)
