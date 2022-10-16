@@ -14,6 +14,30 @@ require('dotenv').config();
 const flash = require('connect-flash');
 //const AppError = require('./AppError');
 const MongoStore = require('connect-mongo');
+const excel = require('excel4node');
+
+// Include process module
+const process = require('process');
+ 
+// Printing current directory
+console.log("Current working directory: ",
+          process.cwd());
+
+// Create a new instance of a Workbook class
+var workbook = new excel.Workbook();
+
+// Add Worksheets to the workbook
+var worksheet = workbook.addWorksheet('Sheet 1');
+var worksheet2 = workbook.addWorksheet('Sheet 2');
+
+// Create a reusable style
+var style = workbook.createStyle({
+  font: {
+    color: '#FF0800',
+    size: 12
+  },
+  numberFormat: '$#,##0.00; ($#,##0.00); -'
+});
 
 let live = process.env.LIVE;
 
@@ -313,7 +337,6 @@ app.get('/auth/failure', (req, res) => {
 })
 
 app.get('/data', isLoggedIn, async (req,res) => {
-    console.log(req.user);
     const user_id = req.user._id;
     let data, test = dateDesc? -1 : 1;
     if (dateDesc && dateChanged)
@@ -536,6 +559,25 @@ app.delete('/data/:id', isLoggedIn, async (req,res) => {
     }
     await percentageSaved.save();
 
+    res.redirect('/data');
+})
+
+//https://stackoverflow.com/questions/17450412/how-to-create-an-excel-file-with-nodejs
+app.post('/createWorkbook', async (req, res) => {
+    let entry = await finance.find({author: req.user._id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1});
+    let i = 1, j = 1;
+    for (let en of entry) {
+        worksheet.cell(i, j).string(en.day + '/' + en.month + '/' + en.year).style(style);
+        j++;
+        worksheet.cell(i, j).number(en.amount).style(style);
+        j++;
+        worksheet.cell(i, j).string(en.category).style(style);
+        j++;
+        worksheet.cell(i, j).string(en.notes).style(style);
+        i++;
+        j = 1;
+    }
+    workbook.write('Excel.xlsx');
     res.redirect('/data');
 })
 
