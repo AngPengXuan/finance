@@ -15,10 +15,18 @@ const flash = require('connect-flash');
 //const AppError = require('./AppError');
 const MongoStore = require('connect-mongo');
 
+let live = process.env.LIVE;
+let dbUrl;
+
 //connect mongoose database
-//'mongodb://localhost:27017/finance'
-const dbUrl = process.env.DB_URL;
-//const dbUrl = 'mongodb://localhost:27017/finance';
+if (live) {
+    dbUrl = process.env.DB_URL;
+}
+else
+{
+    dbUrl = 'mongodb://localhost:27017/finance';
+}
+
 mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log("MONGO CONNECTION OPEN!")
@@ -61,15 +69,17 @@ const sessionConfig = {
     }
 }
 
-app.enable('trust proxy')
-app.use(function(request, response, next) {
+if (live) {
+    app.enable('trust proxy')
+    app.use(function(request, response, next) {
 
-    if (process.env.NODE_ENV != 'development' && !request.secure) {
-       return response.redirect("https://" + request.headers.host + request.url);
-    }
+        if (process.env.NODE_ENV != 'development' && !request.secure) {
+        return response.redirect("https://" + request.headers.host + request.url);
+        }
 
-    next();
-})
+        next();
+    })
+}
 
 app.use(session(sessionConfig));
 app.use(flash());
