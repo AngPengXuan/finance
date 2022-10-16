@@ -442,7 +442,7 @@ app.get('/data/:id/edit', isLoggedIn, async (req,res) => {
     const entry = await finance.findById(id);
 
     let month = entry.month, year = entry.year;
-    let found = await report.findOne({month: month, year: year, category: entry.category}).exec();
+    let found = await report.findOne({month: month, year: year, category: entry.category, author: req.user._id}).exec();
     found.amount -= Number(entry.amount);
     await found.save();
 
@@ -505,7 +505,7 @@ app.delete('/data/:id', isLoggedIn, async (req,res) => {
     //console.log('deleted');
     let find = await finance.findById(id);
     let month = find.month, year = find.year;
-    let found = await report.findOne({month: month, year: year, category: find.category}).exec();
+    let found = await report.findOne({month: month, year: year, category: find.category, author: req.user._id}).exec();
     found.amount -= Number(find.amount);
     await found.save();
     const deleted = await finance.findByIdAndDelete(id);
