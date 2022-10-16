@@ -176,7 +176,7 @@ async function loops(data){
                 amount: Number(amount),
                 category: category,
                 notes: notes,
-                author: "634225ceced75245a2ce6728"
+                author: userid
             };
         await updateData(seedFinance.month, seedFinance.year, seedFinance.category, seedFinance.amount);
         console.log(seedFinance.month);

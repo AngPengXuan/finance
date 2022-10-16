@@ -3,7 +3,7 @@
     <%- include('partials/navbar') %>
     <h1>EDIT OUTFLOW</h1>
     <div>
-        <form action="/summary/<%= entry._id %>" method="POST">
+        <form action="/data/<%= entry._id %>" method="POST">
             <div>
                 <label for="date">Date</label>
                 <input type="date" name="date" id="date" value= <%= tmpDate %> class="form-control">

@@ -284,7 +284,7 @@ app.get('/auth/google/callback',
         const user = await users.findById('634225ceced75245a2ce6728');
         //console.log(user);
         req.login(user, err => {
-            if (err) return next(err);
+            //if (err) return next(err);
             res.redirect('/data');
         })
     }
@@ -420,7 +420,40 @@ app.post('/newInflow', isLoggedIn, async (req,res) => {
 
 app.get('/data/:id/edit', isLoggedIn, async (req,res) => {
     const { id } = req.params;
-    const entry = await finance.findById(id).populate('author');
+    const entry = await finance.findById(id);
+
+    let month = entry.month, year = entry.year;
+    let found = await report.findOne({month: month, year: year, category: entry.category}).exec();
+    found.amount -= Number(entry.amount);
+    await found.save();
+
+    let totalExpense = await report.findOne({month: month, year: year, category: 'Total Expense', author: req.user._id});
+    let totalIncome = await report.findOne({month: month, year: year, category: 'Total Income', author: req.user._id});
+    let amountLeft = await report.findOne({month: month, year: year, category: 'Amount Left', author: req.user._id});
+    let percentageSaved = await report.findOne({month: month, year: year, category: 'Percentage Saved', author: req.user._id});
+    if (found.outflow) {
+        totalExpense.amount -= Number(entry.amount);
+        await totalExpense.save();
+    }
+    else
+    {
+        totalIncome.amount -= Number(entry.amount);
+        await totalIncome.save();
+    }
+    amountLeft.amount = totalIncome.amount - totalExpense.amount;
+    await amountLeft.save();
+    if (totalIncome.amount != 0)
+    {
+        percentageSaved.amount = (amountLeft.amount / totalIncome.amount) * 100;
+        percentageSaved.amount.toFixed(2);
+    }
+    else 
+    {
+        percentageSaved.amount = 0;
+    }
+    await percentageSaved.save();
+
+
     // console.log(entry.author._id.toString());
     console.log(entry);
     if (entry.author._id.toString() !== req.user._id)
@@ -443,7 +476,8 @@ app.get('/data/:id/edit', isLoggedIn, async (req,res) => {
 
 app.post('/data/:id', isLoggedIn, async (req,res) => {
     const { id } = req.params;
-    const entry = await finance.findByIdAndUpdate(id, changeData(req), {runValidators: true, new: true})
+    updateData(req);
+    const entry = await finance.findByIdAndUpdate(id, changeData(req), {runValidators: true, new: true});
     res.redirect('/data');
 })
 

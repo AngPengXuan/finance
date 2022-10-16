@@ -25,10 +25,15 @@
                     <%= m[test[i * len].month - 1] %> <%= test[i * len].year %>
                 </td>
                 <% for (let j = 0; j < len; j++) {%>
-                    <td >
+                    <td <% if (Number(test[j + i * len].amount) < 0) {%> style="color: red;" <% } %>>
                         <% if (j < len - 1) {%>$<% } %>
+                        <% if (j === len - 1 && test[j + i * len].amount === 0) {%> 
+                            NA
+                        <% } %> 
+                        <% if (j !== len - 1 || test[j + i * len].amount !== 0) {%> 
                         <%= test[j + i * len].amount.toFixed(2) %>
-                        <% if (j === len - 1) {%>%<% } %>  
+                        <% } %> 
+                        <% if (j === len - 1 && test[j + i * len].amount !== 0) {%>%<% } %>  
                     </td>
                 <% } %> 
              </tr>

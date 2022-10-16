@@ -28,7 +28,8 @@
         </tr>
         <% for (let s of data) { %> 
             <tr>
-                <td><%= s.day %> / <%= s.month %> / <%= s.year %></td>
+                <% let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] %> 
+                <td><%= s.day %> <%= m[s.month - 1] %> <%= s.year %></td>
                 <td <% if (s.outflow) { %> 
                   style= "color: red"
                   <% } else { %> 
