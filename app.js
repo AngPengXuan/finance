@@ -17,8 +17,8 @@ const MongoStore = require('connect-mongo');
 
 //connect mongoose database
 //'mongodb://localhost:27017/finance'
-const dbUrl = process.env.DB_URL;
-//const dbUrl = 'mongodb://localhost:27017/finance';
+//const dbUrl = process.env.DB_URL;
+const dbUrl = 'mongodb://localhost:27017/finance';
 mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log("MONGO CONNECTION OPEN!")
@@ -325,21 +325,23 @@ app.get('/data', isLoggedIn, async (req,res) => {
 
 app.get('/outflowReport', isLoggedIn, async (req, res) => {
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-    let test = await report.find({outflow: true, author: req.user._id}).sort({month: -1, year: -1, rank: 1});
+    let test = await report.find({outflow: true, author: req.user._id}).sort({year: -1, month: -1, rank: 1});
     let len = outflowCategories.length;
-    res.render('outflowReport', {test, outflowCategories, len, m})
+    //console.log(dataList);
+
+    res.render('outflowReport', {test, outflowCategories, len, m});
 })
 
 app.get('/inflowReport', isLoggedIn, async (req, res) => {
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-    let test = await report.find({outflow: false, summary: false, author: req.user._id}).sort({month: -1, year: -1, rank: 1});
+    let test = await report.find({outflow: false, summary: false, author: req.user._id}).sort({year: -1, month: -1, rank: 1});
     let len = inflowCategories.length;
     res.render('inflowReport', {test, inflowCategories, len, m})
 })
 
 app.get('/summary', isLoggedIn, async (req, res) => {
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-    let test = await report.find({summary: true, author: req.user._id}).sort({month: -1, year: -1, rank: 1});
+    let test = await report.find({summary: true, author: req.user._id}).sort({year: -1, month: -1, rank: 1});
     let len = 4;
     res.render('summary', {test, len, m})
 })
@@ -384,10 +386,22 @@ app.post('/dataamount', isLoggedIn, async (req, res) => {
 })
 
 app.get('/outflow', isLoggedIn, async (req, res) => {
-    res.render('outflow', {outflowCategories, today});
+    let dataList = await finance.find({outflow: true, author: req.user._id}).sort({notes: 1});
+    let uniqueData = [];
+    for (let data of dataList) {
+        uniqueData.push(data.notes);
+    }
+    uniqueData = new Set(uniqueData);
+    res.render('outflow', {outflowCategories, today, uniqueData});
 })
 app.get('/inflow', isLoggedIn, async (req, res) => {
-    res.render('inflow', {inflowCategories, today});
+    let dataList = await finance.find({outflow: false, author: req.user._id}).sort({notes: 1});
+    let uniqueData = [];
+    for (let data of dataList) {
+        uniqueData.push(data.notes);
+    }
+    uniqueData = new Set(uniqueData);
+    res.render('inflow', {inflowCategories, today, uniqueData});
 })
 app.post('/newOutflow', isLoggedIn, async (req,res) => {
     const newEntry = new finance(changeData(req, true));

@@ -24,7 +24,7 @@ fs.readFile('test1.csv', 'utf8', function(err, data){
 
 let i = 0;
 while (data[i] !== "\n") 
-{
+{ 
     i++;
 }
 while(data[i] !== "#")

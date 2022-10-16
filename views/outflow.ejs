@@ -24,7 +24,12 @@
         <br>
         <div class="form-group">
             <label for="notes">Notes</label>
-            <input type="text" name="notes" id="notes" class="form-control" required="true">
+            <input type="text" name="notes" id="notes" required="true" class="form-control" list="note">
+            <datalist id="note">
+                <% for (let data of uniqueData) {%> 
+                    <option value="<%= data %>">
+                <% } %> 
+            </datalist>
         </div>
         <br>
         <button type="submit" class="btn btn-primary">Submit</button>
