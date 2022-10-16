@@ -564,6 +564,8 @@ app.delete('/data/:id', isLoggedIn, async (req,res) => {
 
 //https://stackoverflow.com/questions/17450412/how-to-create-an-excel-file-with-nodejs
 app.post('/createWorkbook', async (req, res) => {
+    console.log("Current working directory: ",
+          process.cwd());
     let entry = await finance.find({author: req.user._id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1});
     let i = 1, j = 1;
     for (let en of entry) {
