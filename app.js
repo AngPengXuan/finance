@@ -33,7 +33,7 @@ var worksheet2 = workbook.addWorksheet('Sheet 2');
 // Create a reusable style
 var style = workbook.createStyle({
   font: {
-    color: '#FF0800',
+    color: '#0E2F44',
     size: 12
   },
   numberFormat: '$#,##0.00; ($#,##0.00); -'
@@ -587,6 +587,13 @@ app.get('/createWorkbook', async (req, res) => {
         worksheet.cell(i, j).string(en.category).style(style);
         j++;
         worksheet.cell(i, j).string(en.notes).style(style);
+        j++;
+        if (en.outflow) {
+            worksheet.cell(i, j).string('outflow').style(style);
+        }
+        else {
+            worksheet.cell(i, j).string('inflow').style(style);
+        }
         i++;
         j = 1;
     }
