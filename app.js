@@ -562,8 +562,19 @@ app.delete('/data/:id', isLoggedIn, async (req,res) => {
     res.redirect('/data');
 })
 
+app.get('/download', (req, res) => {
+    res.download('Excel.xlsx');
+    res.redirect('/data');
+})
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
 //https://stackoverflow.com/questions/17450412/how-to-create-an-excel-file-with-nodejs
-app.post('/createWorkbook', async (req, res) => {
+app.get('/createWorkbook', async (req, res) => {
     console.log("Current working directory: ",
           process.cwd());
     let entry = await finance.find({author: req.user._id}).sort({year: -1, month: -1, day: -1, amount: amountDesc? -1 : 1});
@@ -579,8 +590,13 @@ app.post('/createWorkbook', async (req, res) => {
         i++;
         j = 1;
     }
-    workbook.write('Excel.xlsx');
-    res.redirect('/data');
+    await workbook.write('Excel.xlsx');
+    await sleep(1000);
+    const filePath = path.join(__dirname, 'Excel.xlsx')
+    console.log(filePath);
+    await res.download(filePath, (err)=>{
+            console.log(err);
+      });
 })
 
 const port = process.env.PORT || 3000;
