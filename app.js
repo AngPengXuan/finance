@@ -142,7 +142,7 @@ async function updateData(req) {
     {
         month += req.body.date[i];
     }
-    let found = await report.findOne({month: month, year: year, category: req.body.category}).exec();
+    let found = await report.findOne({month: month, year: year, category: req.body.category, author: req.user._id}).exec();
     if (found === null) {
         for (let i = 0; i < inflowCategories.length; i++) {
             newEntry = new report({
