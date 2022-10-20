@@ -45,10 +45,10 @@ let live = process.env.LIVE;
 let dbUrl = process.env.DB_URL;
 mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
-        console.log("MONGO CONNECTION OPEN!")
+        console.log("MONGO CONNECTION REALLY OPEN!")
     })
     .catch(err => {
-        console.log("MONGO CONNECTION ERROR!")
+        console.log("MONGO CONNECTION ERROR ERROR!")
         console.log(err)
     })
 
