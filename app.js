@@ -116,6 +116,9 @@ const { type } = require('os');
 const user = require('./models/user');
 const category = require('./models/category');
 
+let defaultOutflowCategories = ['Food and Beverages', 'Transport', 'Stationary / office stuff', 'Entertainment', 'Health','Gifts','Investment', 'Education', 'Transfer', 'Others']
+let defaultInflowCategories = ['Income/Allowance', 'Investment'];
+
 let outflowCategories = ['Food and Beverages', 'Transport', 'Stationary / office stuff', 'Entertainment', 'Health','Gifts','Investment', 'Education', 'Transfer', 'Others']
 let inflowCategories = ['Income/Allowance', 'Investment'];
 
@@ -315,6 +318,14 @@ app.post('/register', async (req, res) => {
         const registeredUser =  await User.register(user, password);
         req.login(registeredUser, err => {
             if (err) return next(err);
+            for (let out of defaultOutflowCategories) {
+                let newEntry = category({outflow: true, categories: out, author, req.user._id});
+                await newEntry.save()
+            }
+            for (let in of defaultInflowCategories) {
+                let newEntry = category({outflow: false, categories: in, author, req.user._id});
+                await newEntry.save()
+            }
             res.redirect('/data');
         })
     } catch(e) {
