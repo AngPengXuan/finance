@@ -322,8 +322,8 @@ app.post('/register', async (req, res) => {
                 let newEntry = category({outflow: true, categories: out, author: req.user._id});
                 newEntry.save()
             }
-            for (let in of defaultInflowCategories) {
-                let newEntry = category({outflow: false, categories: in, author: req.user._id});
+            for (let inflow of defaultInflowCategories) {
+                let newEntry = category({outflow: false, categories: inflow, author: req.user._id});
                 newEntry.save()
             }
             res.redirect('/data');
