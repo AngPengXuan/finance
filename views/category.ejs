@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<body>
+    <%- include('partials/navbar') %>
+    <h1>New Category</h1>
+    <form action="/newCategory" method="POST">
+        <div class="form-group">
+            <label for="type">Type</label>
+            <select name="type" id="type" class="form-control">
+                <option value="outflow">Outflow</option>
+                <option value="inflow">Inflow</option>
+            </select>
+        </div>
+        <br>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <input type="text" name="category" id="category" class="form-control" list="note">
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+</body>
+</html>

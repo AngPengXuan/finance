@@ -24,7 +24,6 @@ const financeSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['Food and Beverages', 'Transport', 'Stationary/office stuff', 'Entertainment', 'Health','Gifts','Investment', 'Education', 'Transfer', 'Others','Income/Allowance', 'Investment']
     },
     notes: {
         type: String

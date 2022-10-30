@@ -110,12 +110,14 @@ passport.deserializeUser(User.deserializeUser());
 let dateDesc = true, amountDesc = true, dateChanged = false, amountChanged = false;
 
 const finance = require('./models/finance');
-const users = require('./models/user');
 const report = require('./models/report');
+const categories = require('./models/category');
 const { type } = require('os');
+const user = require('./models/user');
+const category = require('./models/category');
 
-const outflowCategories = ['Food and Beverages', 'Transport', 'Stationary/office stuff', 'Entertainment', 'Health','Gifts','Investment', 'Education', 'Transfer', 'Others']
-const inflowCategories = ['Income/Allowance', 'Investment'];
+let outflowCategories = ['Food and Beverages', 'Transport', 'Stationary / office stuff', 'Entertainment', 'Health','Gifts','Investment', 'Education', 'Transfer', 'Others']
+let inflowCategories = ['Income/Allowance', 'Investment'];
 
 let today = new Date();
 var dd = String(today.getDate()).padStart(2, '0');
@@ -129,7 +131,25 @@ function toFixed(num, fixed) {
     return num.toString().match(re)[0];
 }
 
+async function findOutflowCategories(req) {
+    let test2 = await category.find({outflow: true, author: req.user._id});
+    outflowCategories = [];
+    for (let out of test2) {
+        outflowCategories.push(out.categories);
+    }
+}
+
+async function findInflowCategories(req) {
+    let test2 = await category.find({outflow: false, author: req.user._id});
+    inflowCategories = [];
+    for (let out of test2) {
+        inflowCategories.push(out.categories);
+    }
+}
+
 function changeData(req, bool) {
+    findOutflowCategories(req);
+    findInflowCategories(req);
     let type, day = "", month = "", year = "";
     type = bool;
     for (let i = 0; i < 4; i++)
@@ -156,7 +176,9 @@ function changeData(req, bool) {
     return tmpEntry;
 }
 
-async function updateData(req) {
+async function updateData(req, bool) {
+    findOutflowCategories(req);
+    findInflowCategories(req);
     let month = "", year = "";
     for (let i = 0; i < 4; i++)
     {
@@ -166,8 +188,9 @@ async function updateData(req) {
     {
         month += req.body.date[i];
     }
-    let found = await report.findOne({month: month, year: year, category: req.body.category, author: req.user._id}).exec();
+    let found = await report.findOne({month: month, year: year, category: req.body.category, author: req.user._id, outflow: bool}).exec();
     if (found === null) {
+        console.log('found is null!');
         for (let i = 0; i < inflowCategories.length; i++) {
             newEntry = new report({
                 summary: false,
@@ -238,8 +261,9 @@ async function updateData(req) {
             rank: 4
         })
         await newEntry.save();
-        found = await report.findOne({month: month, year: year, category: req.body.category, author: req.user._id}).exec();
+        found = await report.findOne({month: month, year: year, category: req.body.category, author: req.user._id, outflow: bool}).exec();
     }
+    console.log(found);
     found.amount += Number(req.body.amount);
     await found.save();
     let totalExpense = await report.findOne({month: month, year: year, category: 'Total Expense', author: req.user._id});
@@ -336,6 +360,73 @@ app.get('/auth/failure', (req, res) => {
     res.send('something went wrong');
 })
 
+app.get('/category', (req, res) => {
+    res.render('category');
+})
+
+app.post('/newCategory', async (req, res) => {
+    console.log(req.body.type);
+    console.log(req.body.category);
+    let newEntry;
+    if (req.body.type === "outflow") {
+        newEntry = new categories({
+            outflow: true,
+            categories: req.body.category,
+            author: req.user._id
+        })
+    }
+    else {
+        newEntry = new categories({
+            outflow: false,
+            categories: req.body.category,
+            author: req.user._id
+        })
+    }
+    await newEntry.save();
+    findOutflowCategories(req);
+    findInflowCategories(req);
+    //console.log(outflowCategories);
+    if (req.body.type === "outflow") {
+        let test = await report.find({outflow: true, author: req.user._id}).sort({year: 1, month: 1, rank: -1});
+        //console.log('hi');
+        //console.log(test);
+        for (let i = 0; i < test.length / (outflowCategories.length - 1); i++) {
+            newEntry = new report({
+                summary: false,
+                outflow: true,
+                month: (test[0].month + i - 1) % 12 + 1,
+                year: Math.trunc(test[0].year + (test[0].month + i - 1) / 12),
+                category: req.body.category,
+                amount: 0,
+                author: req.user._id,
+                rank: test.rank + 1
+            })
+            await newEntry.save();   
+            //console.log(newEntry);
+        }
+    }
+    else {
+        let test = await report.find({outflow: false, author: req.user._id}).sort({year: 1, month: 1, rank: -1});
+        //console.log('hi2')
+        //console.log(test);
+        for (let i = 0; i < test.length / (inflowCategories.length - 1); i++) {
+            newEntry = new report({
+                summary: false,
+                outflow: false,
+                month: (test[0].month + i - 1) % 12 + 1,
+                year: Math.trunc(test[0].year + (test[0].month + i - 1) / 12),
+                category: req.body.category,
+                amount: 0,
+                author: req.user._id,
+                rank: test.rank + 1
+            })
+            await newEntry.save();   
+            //console.log(newEntry);
+        }
+    }
+    res.redirect('/data')
+})
+
 app.get('/data', isLoggedIn, async (req,res) => {
     const user_id = req.user._id;
     let data, test = dateDesc? -1 : 1;
@@ -368,6 +459,9 @@ app.get('/data', isLoggedIn, async (req,res) => {
 app.get('/outflowReport', isLoggedIn, async (req, res) => {
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     let test = await report.find({outflow: true, author: req.user._id}).sort({year: -1, month: -1, rank: 1});
+    //console.log(test);
+    await findOutflowCategories(req);
+    //console.log(outflowCategories);
     let len = outflowCategories.length;
     //console.log(dataList);
 
@@ -377,6 +471,7 @@ app.get('/outflowReport', isLoggedIn, async (req, res) => {
 app.get('/inflowReport', isLoggedIn, async (req, res) => {
     let m = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     let test = await report.find({outflow: false, summary: false, author: req.user._id}).sort({year: -1, month: -1, rank: 1});
+    await findInflowCategories(req);
     let len = inflowCategories.length;
     res.render('inflowReport', {test, inflowCategories, len, m})
 })
@@ -428,6 +523,7 @@ app.post('/dataamount', isLoggedIn, async (req, res) => {
 })
 
 app.get('/outflow', isLoggedIn, async (req, res) => {
+    findOutflowCategories(req);
     let dataList = await finance.find({outflow: true, author: req.user._id}).sort({notes: 1});
     let uniqueData = [];
     for (let data of dataList) {
@@ -449,23 +545,47 @@ app.post('/newOutflow', isLoggedIn, async (req,res) => {
     const newEntry = new finance(changeData(req, true));
     newEntry.author = req.user._id;
     await newEntry.save();
-    updateData(req);
+    updateData(req, true);
     res.redirect("/data");
 })
 app.post('/newInflow', isLoggedIn, async (req,res) => {
     let newEntry = new finance(changeData(req, false));
     newEntry.author = req.user._id;
     await newEntry.save();
-    updateData(req);
+    updateData(req, false);
     res.redirect("/data");
 })
 
 app.get('/data/:id/edit', isLoggedIn, async (req,res) => {
     const { id } = req.params;
     const entry = await finance.findById(id);
+    if (entry.author._id.toString() !== req.user._id)
+    {
+        return res.redirect('/data');    
+    }
+    let tmpDate = "";
+    tmpDate = entry.year + "-";
+    entry.month < 10 ? tmpDate += "0" : '';
+    tmpDate += entry.month + "-";
+    entry.day < 10 ? tmpDate += "0" : '';
+    tmpDate += entry.day;
+    if (entry.outflow) {
+        res.render('editOutflow', {entry, outflowCategories, tmpDate})
+    }
+    else {
+        res.render('editInflow', {entry, inflowCategories, tmpDate})
+    }
+})
 
+app.post('/data/:id', isLoggedIn, async (req,res) => {
+    const { id } = req.params;
+    //updateData(req);
+    const entry = await finance.findById(id);
+    const updatedEntry = await finance.findByIdAndUpdate(id, changeData(req), {runValidators: true, new: true});
+
+    //subtract database
     let month = entry.month, year = entry.year;
-    let found = await report.findOne({month: month, year: year, category: entry.category, author: req.user._id}).exec();
+    let found = await report.findOne({month: month, year: year, category: entry.category, author: req.user._id, outflow: entry.outflow}).exec();
     found.amount -= Number(entry.amount);
     await found.save();
 
@@ -495,40 +615,16 @@ app.get('/data/:id/edit', isLoggedIn, async (req,res) => {
     }
     await percentageSaved.save();
 
+    updateData(req, entry.outflow);
 
-    // console.log(entry.author._id.toString());
-    console.log(entry);
-    if (entry.author._id.toString() !== req.user._id)
-    {
-        return res.redirect('/data');    
-    }
-    let tmpDate = "";
-    tmpDate = entry.year + "-";
-    entry.month < 10 ? tmpDate += "0" : '';
-    tmpDate += entry.month + "-";
-    entry.day < 10 ? tmpDate += "0" : '';
-    tmpDate += entry.day;
-    if (entry.outflow) {
-        res.render('editOutflow', {entry, outflowCategories, tmpDate})
-    }
-    else {
-        res.render('editInflow', {entry, inflowCategories, tmpDate})
-    }
-})
-
-app.post('/data/:id', isLoggedIn, async (req,res) => {
-    const { id } = req.params;
-    updateData(req);
-    const entry = await finance.findByIdAndUpdate(id, changeData(req), {runValidators: true, new: true});
     res.redirect('/data');
 })
 
 app.delete('/data/:id', isLoggedIn, async (req,res) => {
     const { id } = req.params;
-    //console.log('deleted');
     let find = await finance.findById(id);
     let month = find.month, year = find.year;
-    let found = await report.findOne({month: month, year: year, category: find.category, author: req.user._id}).exec();
+    let found = await report.findOne({outflow: find.outflow, month: month, year: year, category: find.category, author: req.user._id}).exec();
     found.amount -= Number(find.amount);
     await found.save();
     const deleted = await finance.findByIdAndDelete(id);
