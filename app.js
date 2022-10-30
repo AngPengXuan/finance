@@ -358,7 +358,7 @@ app.get('/auth/google/callback',
         failureRedirect: '/googleloginfail',
     }), async (req, res) => {
         //console.log(req.user.email);
-        const user = await users.findOne({email: req.user.email}).exec();
+        const user = await User.findOne({email: req.user.email}).exec();
         console.log(user);
         req.login(user, err => {
             //if (err) return next(err);
