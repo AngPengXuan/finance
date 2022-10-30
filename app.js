@@ -319,11 +319,11 @@ app.post('/register', async (req, res) => {
         req.login(registeredUser, err => {
             if (err) return next(err);
             for (let out of defaultOutflowCategories) {
-                let newEntry = category({outflow: true, categories: out, author, req.user._id});
+                let newEntry = category({outflow: true, categories: out, author: req.user._id});
                 await newEntry.save()
             }
             for (let in of defaultInflowCategories) {
-                let newEntry = category({outflow: false, categories: in, author, req.user._id});
+                let newEntry = category({outflow: false, categories: in, author: req.user._id});
                 await newEntry.save()
             }
             res.redirect('/data');
